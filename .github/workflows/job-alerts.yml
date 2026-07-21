@@ -1,0 +1,40 @@
+name: Job Alert Bot
+
+on:
+  schedule:
+    # Runs once a day to prevent being blocked by job portals.
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}  # lets you trigger it manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          ALERT_TO_EMAIL: ${{ secrets.ALERT_TO_EMAIL }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: python monitor.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "job-alert-bot"
+          git config user.email "actions@github.com"
+          git add seen_jobs.json
+          git diff --quiet --cached || git commit -m "Update seen jobs [skip ci]"
+          git push
