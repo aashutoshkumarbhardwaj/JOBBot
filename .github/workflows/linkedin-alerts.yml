@@ -1,0 +1,40 @@
+name: LinkedIn Daily Alerts
+
+on:
+  schedule:
+    # Runs once a day at 1:00 AM UTC (to space it out from the main bot)
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check-linkedin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run LinkedIn Monitor
+        env:
+          ALERT_TO_EMAIL: ${{ secrets.ALERT_TO_EMAIL }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: python linkedin_monitor.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "linkedin-alert-bot"
+          git config user.email "actions@github.com"
+          git add seen_linkedin_jobs.json
+          git diff --quiet --cached || git commit -m "Update seen LinkedIn jobs [skip ci]"
+          git push

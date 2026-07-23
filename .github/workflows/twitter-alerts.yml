@@ -1,0 +1,40 @@
+name: Twitter Daily Alerts
+
+on:
+  schedule:
+    # Runs once a day at 2:00 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check-twitter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Twitter Monitor
+        env:
+          ALERT_TO_EMAIL: ${{ secrets.ALERT_TO_EMAIL }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: python twitter_monitor.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "twitter-alert-bot"
+          git config user.email "actions@github.com"
+          git add seen_twitter_jobs.json
+          git diff --quiet --cached || git commit -m "Update seen Twitter jobs [skip ci]"
+          git push
