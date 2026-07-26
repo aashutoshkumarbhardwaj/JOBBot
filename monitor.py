@@ -48,6 +48,11 @@ ENTRY_LEVEL_KEYWORDS = [
     "intern", "internship", "0-1", "0-2", "0-3", "early career", "student", "month"
 ]
 
+REJECT_KEYWORDS = [
+    "senior", "lead", "manager", "staff", "director", "head", "principal", "yoe", 
+    "years of experience", "experienced", "1+", "2+", "3+", "4+", "5+", "vp", "president", "architect"
+]
+
 OTHER_TECH_KEYWORDS = [
     "software", "dev", "developer", "engineer", "engineering", "fullstack", "full-stack", "full stack", "backend", "back-end", "back end"
 ]
@@ -55,6 +60,10 @@ OTHER_TECH_KEYWORDS = [
 def get_job_score(title):
     title_lower = title.lower()
     
+    for kw in REJECT_KEYWORDS:
+        if kw in title_lower:
+            return 0
+            
     is_ai = False
     for kw in AI_KEYWORDS:
         if len(kw) <= 3:

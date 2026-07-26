@@ -42,12 +42,22 @@ ENTRY_LEVEL_KEYWORDS = [
     "intern", "internship", "0-1", "0-2", "0-3", "early career", "student", "month"
 ]
 
+REJECT_KEYWORDS = [
+    "senior", "lead", "manager", "staff", "director", "head", "principal", "yoe", 
+    "years of experience", "experienced", "1+", "2+", "3+", "4+", "5+", "vp", "president", "architect"
+]
+
 OTHER_TECH_KEYWORDS = [
     "software", "dev", "developer", "engineer", "engineering", "fullstack", "full-stack", "full stack", "backend", "back-end", "back end"
 ]
 
 def get_job_score(title):
     title_lower = title.lower()
+    
+    for kw in REJECT_KEYWORDS:
+        if kw in title_lower:
+            return 0
+            
     is_ai = False
     for kw in AI_KEYWORDS:
         if len(kw) <= 3:
@@ -134,7 +144,7 @@ def fetch_linkedin_jobs():
                 search_term=term,
                 location="India",
                 results_wanted=30,
-                hours_old=24
+                hours_old=24 # Expanded to 72 hours to ensure weekend jobs aren't missed
             )
             if jobs_df is not None and not jobs_df.empty:
                 for _, row in jobs_df.iterrows():
@@ -156,11 +166,12 @@ def fetch_linkedin_posts():
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
     
-    # Google Dork: site:linkedin.com/posts "hiring" ("AI Engineer" OR "Machine Learning" OR "Data Scientist")
-    query = 'site:linkedin.com/posts "hiring" ("AI Engineer" OR "Machine Learning" OR "Data Scientist")'
+    # Google Dork: site:linkedin.com/posts ("hiring" OR "internship" OR "fresher" OR "freshers") ("AI Engineer" OR "Machine Learning" OR "Data Scientist")
+    query = 'site:linkedin.com/posts ("hiring" OR "internship" OR "fresher" OR "freshers") ("AI Engineer" OR "Machine Learning" OR "Data Scientist")'
     enc_query = urllib.parse.quote(query)
-    # tbs=qdr:d restricts search to the past 24 hours
-    google_url = f"https://www.google.com/search?q={enc_query}&tbs=qdr:d"
+    # tbs=qdr:w restricts search to the past 7 days (Google indexes social media slowly, so 7 days gives us a wider net)
+    # Our seen_jobs.json will handle deduplication so you don't get duplicates!
+    google_url = f"https://www.google.com/search?q={enc_query}&tbs=qdr:w"
     
     try:
         r = requests.get(google_url, headers=headers, timeout=TIMEOUT)
@@ -172,12 +183,16 @@ def fetch_linkedin_posts():
                 if a_tag and 'href' in a_tag.attrs:
                     url = a_tag['href']
                     if 'linkedin.com/posts' in url:
+                        if url.startswith('/url?'):
+                            parsed = urllib.parse.urlparse(url)
+                            url = urllib.parse.parse_qs(parsed.query).get('q', [url])[0]
+                            
                         title_tag = g.find('h3')
                         title = title_tag.text if title_tag else "LinkedIn Post"
                         snippet_tag = g.find('div', class_='VwiC3b')
                         snippet = snippet_tag.text if snippet_tag else "Check post for details"
                         
-                        posts_found.append((url, "LinkedIn Post", title, url, "Informal Post"))
+                        posts_found.append((url, "LinkedIn Post", title, url, f"Informal Post: {snippet}"))
     except Exception as e:
         print(f"[error] Failed Google X-Ray scrape: {e}")
         
@@ -194,13 +209,18 @@ def main():
     for item_id, company, title, url, source_type in all_results:
         current_ids.add(item_id)
         if item_id not in seen_ids:
-            score = get_job_score(title)
-            # For informal posts, title is often just the person's name + "hiring", so we bump their score manually
-            if source_type == "Informal Post":
-                score = 150 # Automatically treat recent hiring posts as high value
+            # For informal posts, we appended snippet to source_type. We should check both for reject keywords.
+            search_text = f"{title} {source_type}" if "Informal Post" in source_type else title
+            score = get_job_score(search_text)
+            
+            if "Informal Post" in source_type:
+                # If score is 0, it means it hit a REJECT_KEYWORD. 
+                # If it didn't hit a reject keyword, bump it to 150 because it matched our Google Dork for hiring.
+                if score != 0:
+                    score = 150 
                 
             if score > 0:
-                new_postings.append((score, company, title, url, source_type))
+                new_postings.append((score, company, title, url, source_type.split(':')[0]))
 
     # Update state
     seen_ids.update(current_ids)
