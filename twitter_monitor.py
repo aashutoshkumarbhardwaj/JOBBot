@@ -125,43 +125,46 @@ def send_email(subject, body, to_addr, smtp_user, smtp_pass):
 
 # --- SCRAPERS ---
 def fetch_twitter_posts():
-    """Uses Google X-Ray to find Twitter/X posts mentioning hiring or internships in AI/ML (past 24 hrs)."""
-    print("[info] Fetching Twitter Posts via Google X-Ray...")
+    """Uses DuckDuckGo HTML to find Twitter/X posts mentioning hiring or internships in AI/ML."""
+    print("[info] Fetching Twitter Posts via DuckDuckGo HTML...")
     posts_found = []
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
     
-    # Google Dork: (site:x.com OR site:twitter.com) ("hiring" OR "internship" OR "fresher" OR "freshers") ("AI Engineer" OR "Machine Learning" OR "Data Scientist")
+    # DuckDuckGo query (same dork, but no time filter needed as DDG relies on our local deduplication anyway)
     query = '(site:x.com OR site:twitter.com) ("hiring" OR "internship" OR "fresher" OR "freshers") ("AI Engineer" OR "Machine Learning" OR "Data Scientist")'
     enc_query = urllib.parse.quote(query)
-    # tbs=qdr:w restricts search to the past 7 days (Google indexes social media slowly, so 7 days gives us a wider net)
-    # Our seen_jobs.json will handle deduplication so you don't get duplicates!
-    google_url = f"https://www.google.com/search?q={enc_query}&tbs=qdr:w"
+    
+    # DuckDuckGo HTML endpoint avoids JS challenges and CAPTCHAs common on GitHub Action IPs
+    ddg_url = f"https://html.duckduckgo.com/html/?q={enc_query}"
     
     try:
-        r = requests.get(google_url, headers=headers, timeout=TIMEOUT)
+        r = requests.get(ddg_url, headers=headers, timeout=TIMEOUT)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
-            # Google search result blocks
-            for g in soup.find_all('div', class_='g'):
-                a_tag = g.find('a')
-                if a_tag and 'href' in a_tag.attrs:
-                    url = a_tag['href']
+            # DuckDuckGo HTML results are typically in div.result
+            for result in soup.find_all('div', class_='result'):
+                a_url = result.find('a', class_='result__url')
+                a_snippet = result.find('a', class_='result__snippet')
+                
+                if a_url and 'href' in a_url.attrs:
+                    url = a_url['href']
+                    
                     if 'x.com/' in url or 'twitter.com/' in url:
-                        if url.startswith('/url?'):
-                            parsed = urllib.parse.urlparse(url)
-                            url = urllib.parse.parse_qs(parsed.query).get('q', [url])[0]
+                        # DDG direct link or wrapped link
+                        if url.startswith('//duckduckgo.com/l/?uddg='):
+                            parsed = urllib.parse.urlparse('https:' + url)
+                            url = urllib.parse.unquote(urllib.parse.parse_qs(parsed.query).get('uddg', [url])[0])
                             
-                        title_tag = g.find('h3')
-                        title = title_tag.text if title_tag else "Twitter Post"
-                        snippet_tag = g.find('div', class_='VwiC3b')
-                        snippet = snippet_tag.text if snippet_tag else "Check tweet for details"
+                        # Try to get title from snippet or a tag
+                        title = "Twitter Post"
+                        snippet_text = a_snippet.get_text(strip=True) if a_snippet else "Check tweet for details"
                         
-                        posts_found.append((url, "X / Twitter", title, url, snippet))
+                        posts_found.append((url, "X / Twitter", title, url, snippet_text))
     except Exception as e:
-        print(f"[error] Failed Google X-Ray scrape: {e}")
+        print(f"[error] Failed DuckDuckGo scrape: {e}")
         
     return posts_found
 
