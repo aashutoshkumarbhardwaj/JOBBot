@@ -29,7 +29,7 @@ jobs:
           ALERT_TO_EMAIL: ${{ secrets.ALERT_TO_EMAIL }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-        run: python linkedin_monitor.py
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" python linkedin_monitor.py
 
       - name: Commit updated state
         run: |

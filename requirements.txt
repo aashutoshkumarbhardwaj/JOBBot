@@ -2,3 +2,6 @@ requests>=2.31.0
 python-jobspy
 pandas
 beautifulsoup4
+undetected-chromedriver
+undetected-chromedriver
+selenium

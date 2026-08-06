@@ -136,10 +136,28 @@ def send_email(subject, body, to_addr, smtp_user, smtp_pass):
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, [to_addr], msg.as_string())
 
-# --- SCRAPERS ---
+def fetch_with_uc(url):
+    try:
+        import undetected_chromedriver as uc
+        import time
+        options = uc.ChromeOptions()
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        
+        driver = uc.Chrome(options=options)
+        driver.get(url)
+        time.sleep(3) # Wait for page/captcha
+        html = driver.page_source
+        driver.quit()
+        return html
+    except Exception as e:
+        print(f"[error] Failed to fetch with undetected_chromedriver: {e}")
+        return None
+
 def fetch_twitter_posts():
-    """Uses DuckDuckGo HTML to find Twitter/X posts mentioning hiring or internships in AI/ML."""
-    print("[info] Fetching Twitter Posts via DuckDuckGo HTML...")
+    """Uses undetected-chromedriver to bypass DuckDuckGo CAPTCHAs for X/Twitter posts."""
+    print("[info] Fetching Twitter Posts via DuckDuckGo with undetected-chromedriver...")
     posts_found = []
     
     headers = {
@@ -154,9 +172,9 @@ def fetch_twitter_posts():
     ddg_url = f"https://html.duckduckgo.com/html/?q={enc_query}"
     
     try:
-        r = requests.get(ddg_url, headers=headers, timeout=TIMEOUT)
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, 'html.parser')
+        html = fetch_with_uc(ddg_url)
+        if html:
+            soup = BeautifulSoup(html, 'html.parser')
             # DuckDuckGo HTML results are typically in div.result
             for result in soup.find_all('div', class_='result'):
                 a_url = result.find('a', class_='result__url')
@@ -173,9 +191,9 @@ def fetch_twitter_posts():
                             
                         # Try to get title from snippet or a tag
                         title = "Twitter Post"
-                        snippet_text = a_snippet.get_text(strip=True) if a_snippet else "Check tweet for details"
+                        snippet_text = a_snippet.get_text(strip=True) if a_snippet else "Check post for details"
                         
-                        posts_found.append((url, "X / Twitter", title, url, snippet_text))
+                        posts_found.append((url, "X/Twitter Post", title, url, snippet_text))
     except Exception as e:
         print(f"[error] Failed DuckDuckGo scrape: {e}")
         
