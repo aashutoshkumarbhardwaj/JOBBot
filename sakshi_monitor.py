@@ -26,21 +26,12 @@ import requests
 
 BASE_DIR = Path(__file__).parent
 COMPANIES_FILE = BASE_DIR / "companies.json"
-SEEN_FILE = BASE_DIR / "seen_jobs.json"
+SEEN_FILE = BASE_DIR / "seen_jobs_sakshi.json"
 
 TIMEOUT = 15
 
 AI_KEYWORDS = [
-    "applied ai", "applied scientist", "research engineer", "ai engineer", "ml engineer", 
-    "machine learning", "artificial intelligence", "genai", "generative ai", "llm", 
-    "large language models", "foundation models", "prompt engineer", "prompt developer", 
-    "ai solutions engineer", "ai consultant", "ai specialist", "ai architect", "ai developer", 
-    "machine learning scientist", "research scientist", "ai research scientist", "deep learning", 
-    "computer vision", "nlp", "natural language processing", "speech ai", "multimodal", 
-    "vision language model", "vlm", "rag", "retrieval augmented generation", "agentic ai", 
-    "ai agents", "autonomous agents", "data scientist", "decision scientist", "analytics engineer", 
-    "business intelligence", "data analyst", "data engineer", "big data", "etl", "spark", 
-    "pyspark", "mlops", "model deployment", "model serving", "feature store", "inference"
+    "research", "quality control", "quality assurance", "phd", "stipend", "biotech", "assistant professor", "assistant prof", "r&d", "rnd", "research and development", "information technology", "molecular biology", "medical coding", "food tech", "food technology", "pharma", "quality control analyst", "quality assurance associate", "research associate", "clinical research", "microbiologist", "food technologist", "medical coder", "biotech analyst"
 ]
 
 ENTRY_LEVEL_KEYWORDS = [
@@ -174,7 +165,7 @@ def fetch_aggregated_jobs():
     print("[info] Starting external job board scrape via JobSpy...")
     jobs_found = []
     
-    search_terms = ["AI Engineer", "Machine Learning"]
+    search_terms = ["Research", "Quality Assurance", "Biotech", "Food Tech"]
     
     for term in search_terms:
         try:
@@ -346,7 +337,7 @@ def main():
     body = "\n".join(lines)
     subject = f"🔔 {len(new_postings)} new job alert(s)"
 
-    to_addr = os.environ.get("ALERT_TO_EMAIL")
+    to_addr = "sakshidixit318@gmail.com"
     smtp_user = os.environ.get("SMTP_USER")
     smtp_pass = os.environ.get("SMTP_PASS")
 

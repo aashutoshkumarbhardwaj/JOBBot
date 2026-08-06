@@ -50,11 +50,21 @@ OTHER_TECH_KEYWORDS = [
     "software", "dev", "developer", "engineer", "engineering", "fullstack", "full-stack", "full stack", "backend", "back-end", "back end"
 ]
 
-def get_job_score(title):
+def get_job_score(title, description=""):
     title_lower = title.lower()
+    desc_lower = description.lower()
     
     for kw in REJECT_KEYWORDS:
         if kw in title_lower:
+            return 0
+            
+    if description:
+        # Strictly reject any description asking for 1+ years of experience (ignoring 0-1, 0-2)
+        yoe_regex = r'(?<!0-)(?<!0 -)(?<!0 to )\b([1-9]|1[0-9])\+?\s*(?:years|yrs?)\b'
+        yoe_pattern1 = yoe_regex + r'.{0,40}(?:experience|yoe|working|hands-on|proven)'
+        yoe_pattern2 = r'(?:experience|yoe|requirements?).{0,40}' + yoe_regex
+        
+        if re.search(yoe_pattern1, desc_lower) or re.search(yoe_pattern2, desc_lower):
             return 0
             
     is_ai = False
@@ -179,8 +189,7 @@ def main():
     for item_id, company, title, url, snippet in all_results:
         current_ids.add(item_id)
         if item_id not in seen_ids:
-            search_text = f"{title} {snippet}"
-            score = get_job_score(search_text)
+            score = get_job_score(title, snippet)
             
             # If score is 0, it means it hit a REJECT_KEYWORD. 
             # If it didn't hit a reject keyword, bump it to 150 because it matched our Google Dork for hiring.

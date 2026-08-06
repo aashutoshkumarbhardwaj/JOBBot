@@ -20,21 +20,12 @@ import requests
 from bs4 import BeautifulSoup
 
 BASE_DIR = Path(__file__).parent
-SEEN_FILE = BASE_DIR / "seen_linkedin_jobs.json"
+SEEN_FILE = BASE_DIR / "seen_linkedin_jobs_sakshi.json"
 TIMEOUT = 15
 
 # --- SCORING LOGIC ---
 AI_KEYWORDS = [
-    "applied ai", "applied scientist", "research engineer", "ai engineer", "ml engineer", 
-    "machine learning", "artificial intelligence", "genai", "generative ai", "llm", 
-    "large language models", "foundation models", "prompt engineer", "prompt developer", 
-    "ai solutions engineer", "ai consultant", "ai specialist", "ai architect", "ai developer", 
-    "machine learning scientist", "research scientist", "ai research scientist", "deep learning", 
-    "computer vision", "nlp", "natural language processing", "speech ai", "multimodal", 
-    "vision language model", "vlm", "rag", "retrieval augmented generation", "agentic ai", 
-    "ai agents", "autonomous agents", "data scientist", "decision scientist", "analytics engineer", 
-    "business intelligence", "data analyst", "data engineer", "big data", "etl", "spark", 
-    "pyspark", "mlops", "model deployment", "model serving", "feature store", "inference"
+    "research", "quality control", "quality assurance", "phd", "stipend", "biotech", "assistant professor", "assistant prof", "r&d", "rnd", "research and development", "information technology", "molecular biology", "medical coding", "food tech", "food technology", "pharma", "quality control analyst", "quality assurance associate", "research associate", "clinical research", "microbiologist", "food technologist", "medical coder", "biotech analyst"
 ]
 
 ENTRY_LEVEL_KEYWORDS = [
@@ -145,7 +136,7 @@ def fetch_linkedin_jobs():
 
     print("[info] Fetching LinkedIn Jobs...")
     jobs_found = []
-    search_terms = ["AI Engineer", "Machine Learning", "Data Scientist"]
+    search_terms = ["Research", "Quality Assurance", "Biotech", "Food Tech", "Medical Coding"]
     
     for term in search_terms:
         try:
@@ -178,7 +169,7 @@ def fetch_linkedin_posts():
     }
     
     # DuckDuckGo query
-    query = 'site:linkedin.com/posts ("hiring" OR "internship" OR "fresher" OR "freshers") ("AI Engineer" OR "Machine Learning" OR "Data Scientist")'
+    query = 'site:linkedin.com/posts ("hiring" OR "internship" OR "fresher" OR "freshers") ("Research" OR "Quality Assurance" OR "Biotech" OR "Food Tech")'
     enc_query = urllib.parse.quote(query)
     
     # DuckDuckGo HTML endpoint avoids JS challenges and CAPTCHAs common on GitHub Action IPs
@@ -270,7 +261,7 @@ def main():
     body = "\n".join(lines)
     subject = f"🔵 LinkedIn Daily Digest: {len(new_postings)} New Opportunities"
 
-    to_addr = os.environ.get("ALERT_TO_EMAIL")
+    to_addr = "sakshidixit318@gmail.com"
     smtp_user = os.environ.get("SMTP_USER")
     smtp_pass = os.environ.get("SMTP_PASS")
 
