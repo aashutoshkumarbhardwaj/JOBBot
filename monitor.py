@@ -60,6 +60,7 @@ OTHER_TECH_KEYWORDS = [
 def get_job_score(title, description=""):
     title_lower = title.lower()
     desc_lower = description.lower()
+    combined_text = title_lower + " " + desc_lower
     
     for kw in REJECT_KEYWORDS:
         if kw in title_lower:
@@ -74,49 +75,50 @@ def get_job_score(title, description=""):
         if re.search(yoe_pattern1, desc_lower) or re.search(yoe_pattern2, desc_lower):
             return 0
             
-    is_ai = False
-    for kw in AI_KEYWORDS:
-        if len(kw) <= 3:
-            if re.search(rf'\b{re.escape(kw)}\b', title_lower):
-                is_ai = True
-                break
-        else:
-            if kw in title_lower:
-                is_ai = True
-                break
-                
     is_entry = False
     for kw in ENTRY_LEVEL_KEYWORDS:
         if len(kw) <= 2:
-            if re.search(rf'\b{re.escape(kw)}\b', title_lower):
+            if re.search(rf'\b{re.escape(kw)}\b', combined_text):
                 is_entry = True
                 break
         else:
-            if kw in title_lower:
+            if kw in combined_text:
                 is_entry = True
+                break
+
+    # STRICT FILTER: If the job doesnt mention it is for freshers/interns, reject it entirely
+    if not is_entry:
+        return 0
+            
+    is_ai = False
+    for kw in AI_KEYWORDS:
+        if len(kw) <= 3:
+            if re.search(rf'\b{re.escape(kw)}\b', combined_text):
+                is_ai = True
+                break
+        else:
+            if kw in combined_text:
+                is_ai = True
                 break
                 
     is_other = False
     for kw in OTHER_TECH_KEYWORDS:
         if len(kw) <= 3:
-            if re.search(rf'\b{re.escape(kw)}\b', title_lower):
+            if re.search(rf'\b{re.escape(kw)}\b', combined_text):
                 is_other = True
                 break
         else:
-            if kw in title_lower:
+            if kw in combined_text:
                 is_other = True
                 break
                 
     score = 0
-    if is_ai and is_entry:
+    if is_ai:
         score = 150
-    elif is_ai:
-        score = 100
-    elif is_other and is_entry:
-        score = 50
     elif is_other:
+        score = 50
+    else:
         score = 10
-        
     return score
 
 
